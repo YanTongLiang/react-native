@@ -7,8 +7,7 @@
 
 #import "RCTScheduler.h"
 
-#import <react/debug/SystraceSection.h>
-#import <react/uimanager/ComponentDescriptorFactory.h>
+#import <react/uimanager/ContextContainer.h>
 #import <react/uimanager/Scheduler.h>
 #import <react/uimanager/SchedulerDelegate.h>
 
@@ -18,46 +17,22 @@
 
 using namespace facebook::react;
 
-class SchedulerDelegateProxy : public SchedulerDelegate {
- public:
-  SchedulerDelegateProxy(void *scheduler) : scheduler_(scheduler) {}
+class SchedulerDelegateProxy: public SchedulerDelegate {
+public:
+  SchedulerDelegateProxy(void *scheduler):
+    scheduler_(scheduler) {}
 
-  void schedulerDidFinishTransaction(MountingCoordinator::Shared const &mountingCoordinator) override
-  {
+  void schedulerDidFinishTransaction(Tag rootTag, const ShadowViewMutationList &mutations) override {
     RCTScheduler *scheduler = (__bridge RCTScheduler *)scheduler_;
-    [scheduler.delegate schedulerDidFinishTransaction:mountingCoordinator];
+    [scheduler.delegate schedulerDidFinishTransaction:mutations rootTag:rootTag];
   }
 
-  void schedulerDidRequestPreliminaryViewAllocation(SurfaceId surfaceId, const ShadowView &shadowView) override
-  {
-    // Does nothing.
-    // Preemptive allocation of native views on iOS does not require this call.
-  }
-
-  void schedulerDidDispatchCommand(
-      const ShadowView &shadowView,
-      const std::string &commandName,
-      const folly::dynamic args) override
-  {
+  void schedulerDidRequestPreliminaryViewAllocation(SurfaceId surfaceId, ComponentName componentName, bool isLayoutable, ComponentHandle componentHandle) override {
     RCTScheduler *scheduler = (__bridge RCTScheduler *)scheduler_;
-    [scheduler.delegate schedulerDidDispatchCommand:shadowView commandName:commandName args:args];
+    [scheduler.delegate schedulerDidRequestPreliminaryViewAllocationWithComponentName:RCTNSStringFromString(componentName, NSASCIIStringEncoding)];
   }
 
-  void schedulerDidSetJSResponder(
-      SurfaceId surfaceId,
-      const ShadowView &shadowView,
-      const ShadowView &initialShadowView,
-      bool blockNativeResponder) override
-  {
-    // Does nothing for now.
-  }
-
-  void schedulerDidClearJSResponder() override
-  {
-    // Does nothing for now.
-  }
-
- private:
+private:
   void *scheduler_;
 };
 
@@ -66,11 +41,12 @@ class SchedulerDelegateProxy : public SchedulerDelegate {
   std::shared_ptr<SchedulerDelegateProxy> _delegateProxy;
 }
 
-- (instancetype)initWithToolbox:(facebook::react::SchedulerToolbox)toolbox
+- (instancetype)initWithContextContainer:(std::shared_ptr<void>)contextContatiner
 {
   if (self = [super init]) {
     _delegateProxy = std::make_shared<SchedulerDelegateProxy>((__bridge void *)self);
-    _scheduler = std::make_shared<Scheduler>(toolbox, _delegateProxy.get());
+    _scheduler = std::make_shared<Scheduler>(std::static_pointer_cast<ContextContainer>(contextContatiner));
+    _scheduler->setDelegate(_delegateProxy.get());
   }
 
   return self;
@@ -83,21 +59,26 @@ class SchedulerDelegateProxy : public SchedulerDelegate {
 
 - (void)startSurfaceWithSurfaceId:(SurfaceId)surfaceId
                        moduleName:(NSString *)moduleName
-                     initialProps:(NSDictionary *)initialProps
+                     initailProps:(NSDictionary *)initialProps
                 layoutConstraints:(LayoutConstraints)layoutConstraints
-                    layoutContext:(LayoutContext)layoutContext
+                    layoutContext:(LayoutContext)layoutContext;
 {
-  SystraceSection s("-[RCTScheduler startSurfaceWithSurfaceId:...]");
-
   auto props = convertIdToFollyDynamic(initialProps);
-  _scheduler->startSurface(surfaceId, RCTStringFromNSString(moduleName), props, layoutConstraints, layoutContext);
+  _scheduler->startSurface(
+      surfaceId,
+      RCTStringFromNSString(moduleName),
+      props,
+      layoutConstraints,
+      layoutContext);
   _scheduler->renderTemplateToSurface(
-      surfaceId, props.getDefault("navigationConfig").getDefault("initialUITemplate", "").getString());
+      surfaceId,
+      props.getDefault("navigationConfig")
+          .getDefault("initialUITemplate", "")
+          .getString());
 }
 
 - (void)stopSurfaceWithSurfaceId:(SurfaceId)surfaceId
 {
-  SystraceSection s("-[RCTScheduler stopSurfaceWithSurfaceId:]");
   _scheduler->stopSurface(surfaceId);
 }
 
@@ -105,7 +86,6 @@ class SchedulerDelegateProxy : public SchedulerDelegate {
                                 layoutContext:(LayoutContext)layoutContext
                                     surfaceId:(SurfaceId)surfaceId
 {
-  SystraceSection s("-[RCTScheduler measureSurfaceWithLayoutConstraints:]");
   return RCTCGSizeFromSize(_scheduler->measureSurface(surfaceId, layoutConstraints, layoutContext));
 }
 
@@ -113,13 +93,7 @@ class SchedulerDelegateProxy : public SchedulerDelegate {
                                        layoutContext:(LayoutContext)layoutContext
                                            surfaceId:(SurfaceId)surfaceId
 {
-  SystraceSection s("-[RCTScheduler constraintSurfaceLayoutWithLayoutConstraints:]");
   _scheduler->constraintSurfaceLayout(surfaceId, layoutConstraints, layoutContext);
-}
-
-- (const ComponentDescriptor &)getComponentDescriptor:(ComponentHandle)handle
-{
-  return _scheduler->getComponentDescriptor(handle);
 }
 
 @end

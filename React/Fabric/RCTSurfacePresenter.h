@@ -9,17 +9,11 @@
 #import <memory>
 
 #import <React/RCTBridge.h>
-#import <React/RCTComponentViewFactory.h>
 #import <React/RCTPrimitives.h>
-#import <React/RCTSurfacePresenterStub.h>
-#import <react/config/ReactNativeConfig.h>
-#import <react/utils/ContextContainer.h>
-#import <react/utils/RuntimeExecutor.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
 @class RCTFabricSurface;
-@class RCTImageLoader;
 @class RCTMountingManager;
 
 /**
@@ -30,25 +24,20 @@ NS_ASSUME_NONNULL_BEGIN
  */
 @interface RCTSurfacePresenter : NSObject
 
-- (instancetype)initWithBridge:(RCTBridge *_Nullable)bridge
-                        config:(std::shared_ptr<const facebook::react::ReactNativeConfig>)config
-                   imageLoader:(RCTImageLoader *)imageLoader
-               runtimeExecutor:(facebook::react::RuntimeExecutor)runtimeExecutor;
-
-@property (nonatomic, readonly) RCTComponentViewFactory *componentViewFactory;
-@property (nonatomic, readonly) facebook::react::ContextContainer::Shared contextContainer;
+- (instancetype)initWithBridge:(RCTBridge *)bridge;
 
 @end
 
-@interface RCTSurfacePresenter (Surface) <RCTSurfacePresenterStub>
+@interface RCTSurfacePresenter (Surface)
 
 /**
- * Surface uses these methods to register itself in the Presenter.
+ * Surface uses those methods to register itself in the Presenter.
+ * Registering initiates running, rendering and mounting processes.
  */
 - (void)registerSurface:(RCTFabricSurface *)surface;
 - (void)unregisterSurface:(RCTFabricSurface *)surface;
-
-- (void)setProps:(NSDictionary *)props surface:(RCTFabricSurface *)surface;
+- (void)setProps:(NSDictionary *)props
+         surface:(RCTFabricSurface *)surface;
 
 - (nullable RCTFabricSurface *)surfaceForRootTag:(ReactTag)rootTag;
 
@@ -62,13 +51,24 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * Sets `minimumSize` and `maximumSize` layout constraints for the Surface.
  */
-- (void)setMinimumSize:(CGSize)minimumSize maximumSize:(CGSize)maximumSize surface:(RCTFabricSurface *)surface;
+- (void)setMinimumSize:(CGSize)minimumSize
+           maximumSize:(CGSize)maximumSize
+               surface:(RCTFabricSurface *)surface;
 
-- (BOOL)synchronouslyUpdateViewOnUIThread:(NSNumber *)reactTag props:(NSDictionary *)props;
+@end
 
-- (void)addObserver:(id<RCTSurfacePresenterObserver>)observer;
+@interface RCTSurfacePresenter (Deprecated)
 
-- (void)removeObserver:(id<RCTSurfacePresenterObserver>)observer;
+/**
+ * Returns a underlying bridge.
+ */
+- (RCTBridge *)bridge_DO_NOT_USE;
+
+@end
+
+@interface RCTBridge (Deprecated)
+
+@property (nonatomic) RCTSurfacePresenter *surfacePresenter;
 
 @end
 

@@ -10,14 +10,10 @@
 
 'use strict';
 
-const React = require('react');
+const React = require('React');
 
-import type {Category} from './Data/YellowBoxCategory';
-import type {
-  Registry,
-  Subscription,
-  IgnorePattern,
-} from './Data/YellowBoxRegistry';
+import type {Category} from 'YellowBoxCategory';
+import type {Registry, Subscription} from 'YellowBoxRegistry';
 
 type Props = $ReadOnly<{||}>;
 type State = {|
@@ -45,31 +41,21 @@ let YellowBox;
  * the ignored warning messages.
  */
 if (__DEV__) {
-  const Platform = require('../Utilities/Platform');
-  const RCTLog = require('../Utilities/RCTLog');
-  const YellowBoxList = require('./UI/YellowBoxList');
-  const YellowBoxRegistry = require('./Data/YellowBoxRegistry');
+  const Platform = require('Platform');
+  const RCTLog = require('RCTLog');
+  const YellowBoxList = require('YellowBoxList');
+  const YellowBoxRegistry = require('YellowBoxRegistry');
 
-  // YellowBox needs to insert itself early,
-  // in order to access the component stacks appended by React DevTools.
   const {error, warn} = console;
-  let errorImpl = error;
-  let warnImpl = warn;
-  (console: any).error = function(...args) {
-    errorImpl(...args);
-  };
-  (console: any).warn = function(...args) {
-    warnImpl(...args);
-  };
 
   // eslint-disable-next-line no-shadow
   YellowBox = class YellowBox extends React.Component<Props, State> {
-    static ignoreWarnings(patterns: $ReadOnlyArray<IgnorePattern>): void {
+    static ignoreWarnings(patterns: $ReadOnlyArray<string>): void {
       YellowBoxRegistry.addIgnorePatterns(patterns);
     }
 
     static install(): void {
-      errorImpl = function(...args) {
+      (console: any).error = function(...args) {
         error.call(console, ...args);
         // Show YellowBox for the `warning` module.
         if (typeof args[0] === 'string' && args[0].startsWith('Warning: ')) {
@@ -77,7 +63,7 @@ if (__DEV__) {
         }
       };
 
-      warnImpl = function(...args) {
+      (console: any).warn = function(...args) {
         warn.call(console, ...args);
         registerWarning(...args);
       };
@@ -101,8 +87,8 @@ if (__DEV__) {
     }
 
     static uninstall(): void {
-      errorImpl = error;
-      warnImpl = warn;
+      (console: any).error = error;
+      (console: any).warn = error;
       delete (console: any).disableYellowBox;
     }
 
@@ -145,20 +131,11 @@ if (__DEV__) {
   };
 
   const registerWarning = (...args): void => {
-    // YellowBox should ignore the top 3-4 stack frames:
-    // 1: registerWarning() itself
-    // 2: YellowBox's own console override (in this file)
-    // 3: React DevTools console.error override (to add component stack)
-    //    (The override feature may be disabled by a runtime preference.)
-    // 4: The actual console method itself.
-    // $FlowFixMe This prop is how the DevTools override is observable.
-    const isDevToolsOvveride = !!console.warn
-      .__REACT_DEVTOOLS_ORIGINAL_METHOD__;
-    YellowBoxRegistry.add({args, framesToPop: isDevToolsOvveride ? 4 : 3});
+    YellowBoxRegistry.add({args, framesToPop: 2});
   };
 } else {
-  YellowBox = class extends React.Component<Props, State> {
-    static ignoreWarnings(patterns: $ReadOnlyArray<IgnorePattern>): void {
+  YellowBox = class extends React.Component<Props> {
+    static ignoreWarnings(patterns: $ReadOnlyArray<string>): void {
       // Do nothing.
     }
 
@@ -176,8 +153,4 @@ if (__DEV__) {
   };
 }
 
-module.exports = (YellowBox: Class<React.Component<Props, State>> & {
-  ignoreWarnings($ReadOnlyArray<IgnorePattern>): void,
-  install(): void,
-  uninstall(): void,
-});
+module.exports = YellowBox;

@@ -10,16 +10,14 @@
 
 'use strict';
 
-const LayoutAnimation = require('../../LayoutAnimation/LayoutAnimation');
-const NativeEventEmitter = require('../../EventEmitter/NativeEventEmitter');
+const LayoutAnimation = require('LayoutAnimation');
+const invariant = require('fbjs/lib/invariant');
+const NativeEventEmitter = require('NativeEventEmitter');
+const KeyboardObserver = require('NativeModules').KeyboardObserver;
+const dismissKeyboard = require('dismissKeyboard');
+const KeyboardEventEmitter = new NativeEventEmitter(KeyboardObserver);
 
-const dismissKeyboard = require('../../Utilities/dismissKeyboard');
-const invariant = require('invariant');
-
-import NativeKeyboardObserver from './NativeKeyboardObserver';
-const KeyboardEventEmitter = new NativeEventEmitter(NativeKeyboardObserver);
-
-export type KeyboardEventName =
+type KeyboardEventName =
   | 'keyboardWillShow'
   | 'keyboardDidShow'
   | 'keyboardWillHide'
@@ -27,38 +25,18 @@ export type KeyboardEventName =
   | 'keyboardWillChangeFrame'
   | 'keyboardDidChangeFrame';
 
-export type KeyboardEventEasing =
-  | 'easeIn'
-  | 'easeInEaseOut'
-  | 'easeOut'
-  | 'linear'
-  | 'keyboard';
-
-export type KeyboardEventCoordinates = $ReadOnly<{|
+type ScreenRect = $ReadOnly<{|
   screenX: number,
   screenY: number,
   width: number,
   height: number,
 |}>;
 
-export type KeyboardEvent = AndroidKeyboardEvent | IOSKeyboardEvent;
-
-type BaseKeyboardEvent = {|
-  duration: number,
-  easing: KeyboardEventEasing,
-  endCoordinates: KeyboardEventCoordinates,
-|};
-
-export type AndroidKeyboardEvent = $ReadOnly<{|
-  ...BaseKeyboardEvent,
-  duration: 0,
-  easing: 'keyboard',
-|}>;
-
-export type IOSKeyboardEvent = $ReadOnly<{|
-  ...BaseKeyboardEvent,
-  startCoordinates: KeyboardEventCoordinates,
-  isEventFromThisApp: boolean,
+export type KeyboardEvent = $ReadOnly<{|
+  duration?: number,
+  easing?: string,
+  endCoordinates: ScreenRect,
+  startCoordinates?: ScreenRect,
 |}>;
 
 type KeyboardEventListener = (e: KeyboardEvent) => void;
@@ -109,21 +87,7 @@ type KeyboardEventListener = (e: KeyboardEvent) => void;
  *```
  */
 
-let Keyboard:
-  | NativeEventEmitter
-  | {|
-      addListener: (
-        eventName: KeyboardEventName,
-        callback: KeyboardEventListener,
-      ) => $FlowFixMe,
-      dismiss: () => $FlowFixMe,
-      removeAllListeners: (eventName: KeyboardEventName) => $FlowFixMe,
-      removeListener: (
-        eventName: KeyboardEventName,
-        callback: KeyboardEventListener,
-      ) => $FlowFixMe,
-      scheduleLayoutAnimation: (event: KeyboardEvent) => $FlowFixMe,
-    |} = {
+let Keyboard = {
   /**
    * The `addListener` function connects a JavaScript function to an identified native
    * keyboard notification event.

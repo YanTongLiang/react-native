@@ -50,7 +50,7 @@ static TextAttributes convertRawProp(
   textAttributes.lineHeight =
       convertRawProp(rawProps, "lineHeight", defaultTextAttributes.lineHeight);
   textAttributes.alignment =
-      convertRawProp(rawProps, "textAlign", defaultTextAttributes.alignment);
+      convertRawProp(rawProps, "alignment", defaultTextAttributes.alignment);
   textAttributes.baseWritingDirection = convertRawProp(
       rawProps,
       "baseWritingDirection",
@@ -63,7 +63,7 @@ static TextAttributes convertRawProp(
       defaultTextAttributes.textDecorationColor);
   textAttributes.textDecorationLineType = convertRawProp(
       rawProps,
-      "textDecorationLine",
+      "textDecorationLineType",
       defaultTextAttributes.textDecorationLineType);
   textAttributes.textDecorationLineStyle = convertRawProp(
       rawProps,

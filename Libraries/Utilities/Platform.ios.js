@@ -10,57 +10,36 @@
 
 'use strict';
 
-import NativePlatformConstantsIOS from './NativePlatformConstantsIOS';
-
-export type PlatformSelectSpec<D, I> = {
-  default?: D,
-  ios?: I,
-};
+const NativeModules = require('NativeModules');
 
 const Platform = {
-  __constants: null,
   OS: 'ios',
-  get Version(): $FlowFixMe {
-    return this.constants.osVersion;
+  get Version() {
+    const constants = NativeModules.PlatformConstants;
+    return constants && constants.osVersion;
   },
-  get constants(): {|
-    forceTouchAvailable: boolean,
-    interfaceIdiom: string,
-    isTesting: boolean,
-    osVersion: string,
-    reactNativeVersion: {|
-      major: number,
-      minor: number,
-      patch: number,
-      prerelease: ?number,
-    |},
-    systemName: string,
-  |} {
-    if (this.__constants == null) {
-      this.__constants = NativePlatformConstantsIOS.getConstants();
-    }
-    return this.__constants;
-  },
-  get isPad(): boolean {
-    return this.constants.interfaceIdiom === 'pad';
+  get isPad() {
+    const constants = NativeModules.PlatformConstants;
+    return constants ? constants.interfaceIdiom === 'pad' : false;
   },
   /**
    * Deprecated, use `isTV` instead.
    */
-  get isTVOS(): boolean {
+  get isTVOS() {
     return Platform.isTV;
   },
-  get isTV(): boolean {
-    return this.constants.interfaceIdiom === 'tv';
+  get isTV() {
+    const constants = NativeModules.PlatformConstants;
+    return constants ? constants.interfaceIdiom === 'tv' : false;
   },
   get isTesting(): boolean {
     if (__DEV__) {
-      return this.constants.isTesting;
+      const constants = NativeModules.PlatformConstants;
+      return constants && constants.isTesting;
     }
     return false;
   },
-  select: <D, I>(spec: PlatformSelectSpec<D, I>): D | I =>
-    'ios' in spec ? spec.ios : spec.default,
+  select: (obj: Object) => ('ios' in obj ? obj.ios : obj.default),
 };
 
 module.exports = Platform;

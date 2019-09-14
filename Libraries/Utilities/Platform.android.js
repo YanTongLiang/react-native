@@ -10,51 +10,26 @@
 
 'use strict';
 
-import NativePlatformConstantsAndroid from './NativePlatformConstantsAndroid';
-
-export type PlatformSelectSpec<A, D> = {
-  android?: A,
-  default?: D,
-};
+const NativeModules = require('NativeModules');
 
 const Platform = {
-  __constants: null,
   OS: 'android',
-  get Version(): number {
-    return this.constants.Version;
-  },
-  get constants(): {|
-    isTesting: boolean,
-    reactNativeVersion: {|
-      major: number,
-      minor: number,
-      patch: number,
-      prerelease: ?number,
-    |},
-    Version: number,
-    Release: string,
-    Serial: string,
-    Fingerprint: string,
-    Model: string,
-    ServerHost: string,
-    uiMode: string,
-  |} {
-    if (this.__constants == null) {
-      this.__constants = NativePlatformConstantsAndroid.getConstants();
-    }
-    return this.__constants;
+  get Version() {
+    const constants = NativeModules.PlatformConstants;
+    return constants && constants.Version;
   },
   get isTesting(): boolean {
     if (__DEV__) {
-      return this.constants.isTesting;
+      const constants = NativeModules.PlatformConstants;
+      return constants && constants.isTesting;
     }
     return false;
   },
   get isTV(): boolean {
-    return this.constants.uiMode === 'tv';
+    const constants = NativeModules.PlatformConstants;
+    return constants && constants.uiMode === 'tv';
   },
-  select: <A, D>(spec: PlatformSelectSpec<A, D>): A | D =>
-    'android' in spec ? spec.android : spec.default,
+  select: (obj: Object) => ('android' in obj ? obj.android : obj.default),
 };
 
 module.exports = Platform;

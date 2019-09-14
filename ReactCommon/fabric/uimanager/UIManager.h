@@ -7,18 +7,16 @@
 #include <jsi/jsi.h>
 
 #include <react/core/ShadowNode.h>
-#include <react/core/StateData.h>
-#include <react/mounting/ShadowTreeRegistry.h>
 #include <react/uimanager/ComponentDescriptorRegistry.h>
+#include <react/uimanager/ShadowTreeRegistry.h>
 #include <react/uimanager/UIManagerDelegate.h>
 
 namespace facebook {
 namespace react {
 
-class UIManagerBinding;
-
 class UIManager {
  public:
+  void setShadowTreeRegistry(ShadowTreeRegistry *shadowTreeRegistry);
 
   void setComponentDescriptorRegistry(
       const SharedComponentDescriptorRegistry &componentDescriptorRegistry);
@@ -31,23 +29,12 @@ class UIManager {
   void setDelegate(UIManagerDelegate *delegate);
   UIManagerDelegate *getDelegate();
 
-  /*
-   * Provides access to a UIManagerBindging.
-   * The `callback` methods will not be called if the internal pointer to
-   * `UIManagerBindging` is `nullptr`.
-   * The callback is called synchronously on the same thread.
-   */
-  void visitBinding(
-      std::function<void(UIManagerBinding const &uiManagerBinding)> callback)
-      const;
-
  private:
   friend class UIManagerBinding;
-  friend class Scheduler;
 
   SharedShadowNode createNode(
       Tag tag,
-      std::string const &componentName,
+      const std::string &name,
       SurfaceId surfaceId,
       const RawProps &props,
       SharedEventTarget eventTarget) const;
@@ -55,7 +42,7 @@ class UIManager {
   SharedShadowNode cloneNode(
       const SharedShadowNode &shadowNode,
       const SharedShadowNodeSharedList &children = nullptr,
-      const RawProps *rawProps = nullptr) const;
+      const folly::Optional<RawProps> &rawProps = {}) const;
 
   void appendChild(
       const SharedShadowNode &parentShadowNode,
@@ -64,16 +51,6 @@ class UIManager {
   void completeSurface(
       SurfaceId surfaceId,
       const SharedShadowNodeUnsharedList &rootChildren) const;
-
-  void setNativeProps(
-      const SharedShadowNode &shadowNode,
-      const RawProps &rawProps) const;
-
-  void setJSResponder(
-      const SharedShadowNode &shadowNode,
-      const bool blockNativeResponder) const;
-
-  void clearJSResponder() const;
 
   /*
    * Returns layout metrics of given `shadowNode` relative to
@@ -84,33 +61,9 @@ class UIManager {
       const ShadowNode &shadowNode,
       const ShadowNode *ancestorShadowNode) const;
 
-  /*
-   * Creates a new shadow node with given state data, clones what's necessary
-   * and performs a commit.
-   */
-  void updateState(
-      const SharedShadowNode &shadowNode,
-      const StateData::Shared &rawStateData) const;
-
-  void dispatchCommand(
-      const SharedShadowNode &shadowNode,
-      std::string const &commandName,
-      folly::dynamic const args) const;
-
-  /*
-   * Iterates over all shadow nodes which are parts of all registered surfaces
-   * and find the one that has given `tag`. Returns `nullptr` if the node wasn't
-   * found. This is a temporary workaround that should not be used in any core
-   * functionality.
-   */
-  ShadowNode::Shared findShadowNodeByTag_DEPRECATED(Tag tag) const;
-
-  ShadowTreeRegistry const &getShadowTreeRegistry() const;
-
+  ShadowTreeRegistry *shadowTreeRegistry_;
   SharedComponentDescriptorRegistry componentDescriptorRegistry_;
   UIManagerDelegate *delegate_;
-  UIManagerBinding *uiManagerBinding_;
-  ShadowTreeRegistry shadowTreeRegistry_{};
 };
 
 } // namespace react

@@ -10,7 +10,6 @@
 
 #include <react/core/LayoutMetrics.h>
 #include <react/core/ReactPrimitives.h>
-
 #include "TouchEventEmitter.h"
 
 namespace facebook {
@@ -29,7 +28,6 @@ class ViewEventEmitter : public TouchEventEmitter {
   void onAccessibilityAction(const std::string &name) const;
   void onAccessibilityTap() const;
   void onAccessibilityMagicTap() const;
-  void onAccessibilityEscape() const;
 
 #pragma mark - Layout
 

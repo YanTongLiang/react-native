@@ -13,9 +13,9 @@ const {AnimatedEvent} = require('../AnimatedEvent');
 const AnimatedNode = require('./AnimatedNode');
 const AnimatedStyle = require('./AnimatedStyle');
 const NativeAnimatedHelper = require('../NativeAnimatedHelper');
-const ReactNative = require('../../../Renderer/shims/ReactNative');
+const ReactNative = require('ReactNative');
 
-const invariant = require('invariant');
+const invariant = require('fbjs/lib/invariant');
 
 class AnimatedProps extends AnimatedNode {
   _props: Object;
@@ -151,7 +151,6 @@ class AnimatedProps extends AnimatedNode {
     for (const propKey in this._props) {
       const value = this._props[propKey];
       if (value instanceof AnimatedNode) {
-        value.__makeNative();
         propsConfig[propKey] = value.__getNativeTag();
       }
     }

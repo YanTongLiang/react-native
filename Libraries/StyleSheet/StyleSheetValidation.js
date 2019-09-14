@@ -10,11 +10,11 @@
 
 'use strict';
 
-const DeprecatedImageStylePropTypes = require('../DeprecatedPropTypes/DeprecatedImageStylePropTypes');
-const DeprecatedTextStylePropTypes = require('../DeprecatedPropTypes/DeprecatedTextStylePropTypes');
-const DeprecatedViewStylePropTypes = require('../DeprecatedPropTypes/DeprecatedViewStylePropTypes');
+const DeprecatedImageStylePropTypes = require('DeprecatedImageStylePropTypes');
+const TextStylePropTypes = require('TextStylePropTypes');
+const DeprecatedViewStylePropTypes = require('DeprecatedViewStylePropTypes');
 
-const invariant = require('invariant');
+const invariant = require('fbjs/lib/invariant');
 
 // Hardcoded because this is a legit case but we don't want to load it from
 // a private API. We might likely want to unify style sheet creation with how it
@@ -89,7 +89,7 @@ const allStylePropTypes = {};
 
 if (__DEV__ && !global.__RCTProfileIsProfiling) {
   StyleSheetValidation.addValidStylePropTypes(DeprecatedImageStylePropTypes);
-  StyleSheetValidation.addValidStylePropTypes(DeprecatedTextStylePropTypes);
+  StyleSheetValidation.addValidStylePropTypes(TextStylePropTypes);
   StyleSheetValidation.addValidStylePropTypes(DeprecatedViewStylePropTypes);
 }
 

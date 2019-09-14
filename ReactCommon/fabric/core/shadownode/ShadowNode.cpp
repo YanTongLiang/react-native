@@ -7,10 +7,8 @@
 
 #include "ShadowNode.h"
 
-#include <better/small_vector.h>
 #include <string>
 
-#include <react/core/ComponentDescriptor.h>
 #include <react/core/ShadowNodeFragment.h>
 #include <react/debug/DebugStringConvertible.h>
 #include <react/debug/debugStringConvertibleUtils.h>
@@ -18,126 +16,70 @@
 namespace facebook {
 namespace react {
 
-using AncestorList = ShadowNode::AncestorList;
-
 SharedShadowNodeSharedList ShadowNode::emptySharedShadowNodeSharedList() {
   static const auto emptySharedShadowNodeSharedList =
       std::make_shared<SharedShadowNodeList>();
   return emptySharedShadowNodeSharedList;
 }
 
-bool ShadowNode::sameFamily(const ShadowNode &first, const ShadowNode &second) {
-  return first.family_ == second.family_;
-}
-
 #pragma mark - Constructors
 
 ShadowNode::ShadowNode(
     const ShadowNodeFragment &fragment,
-    const ComponentDescriptor &componentDescriptor)
-    : props_(fragment.props),
-      children_(
-          fragment.children ? fragment.children
-                            : emptySharedShadowNodeSharedList()),
-      state_(fragment.state),
-      family_(std::make_shared<ShadowNodeFamily const>(
-          fragment.tag,
-          fragment.surfaceId,
-          fragment.eventEmitter,
-          componentDescriptor)),
+    const ShadowNodeCloneFunction &cloneFunction)
+    : tag_(fragment.tag),
+      rootTag_(fragment.rootTag),
+      props_(fragment.props),
+      eventEmitter_(fragment.eventEmitter),
+      children_(fragment.children ?: emptySharedShadowNodeSharedList()),
+      cloneFunction_(cloneFunction),
       childrenAreShared_(true),
       revision_(1) {
   assert(props_);
   assert(children_);
-
-  for (const auto &child : *children_) {
-    child->family_->setParent(family_);
-  }
 }
 
 ShadowNode::ShadowNode(
     const ShadowNode &sourceShadowNode,
     const ShadowNodeFragment &fragment)
-    : props_(fragment.props ? fragment.props : sourceShadowNode.props_),
-      children_(
-          fragment.children ? fragment.children : sourceShadowNode.children_),
-      localData_(
-          fragment.localData ? fragment.localData
-                             : sourceShadowNode.localData_),
-      state_(
-          fragment.state ? fragment.state
-                         : sourceShadowNode.getMostRecentState()),
-      family_(sourceShadowNode.family_),
+    : tag_(fragment.tag ?: sourceShadowNode.tag_),
+      rootTag_(fragment.rootTag ?: sourceShadowNode.rootTag_),
+      props_(fragment.props ?: sourceShadowNode.props_),
+      eventEmitter_(fragment.eventEmitter ?: sourceShadowNode.eventEmitter_),
+      children_(fragment.children ?: sourceShadowNode.children_),
+      localData_(fragment.localData ?: sourceShadowNode.localData_),
+      cloneFunction_(sourceShadowNode.cloneFunction_),
       childrenAreShared_(true),
       revision_(sourceShadowNode.revision_ + 1) {
-  // `tag`, `surfaceId`, and `eventEmitter` cannot be changed with cloning.
-  assert(fragment.tag == ShadowNodeFragment::tagPlaceholder());
-  assert(fragment.surfaceId == ShadowNodeFragment::surfaceIdPlaceholder());
-  assert(
-      fragment.eventEmitter == ShadowNodeFragment::eventEmitterPlaceholder());
-
   assert(props_);
   assert(children_);
-
-  if (fragment.children) {
-    for (const auto &child : *children_) {
-      child->family_->setParent(family_);
-    }
-  }
 }
 
 UnsharedShadowNode ShadowNode::clone(const ShadowNodeFragment &fragment) const {
-  return family_->componentDescriptor_.cloneShadowNode(*this, fragment);
+  assert(cloneFunction_);
+  return cloneFunction_(*this, fragment);
 }
 
 #pragma mark - Getters
-
-ComponentName ShadowNode::getComponentName() const {
-  return family_->componentDescriptor_.getComponentName();
-}
-
-ComponentHandle ShadowNode::getComponentHandle() const {
-  return family_->componentDescriptor_.getComponentHandle();
-}
 
 const SharedShadowNodeList &ShadowNode::getChildren() const {
   return *children_;
 }
 
-const SharedProps &ShadowNode::getProps() const {
+SharedProps ShadowNode::getProps() const {
   return props_;
 }
 
-const SharedEventEmitter &ShadowNode::getEventEmitter() const {
-  return family_->eventEmitter_;
+SharedEventEmitter ShadowNode::getEventEmitter() const {
+  return eventEmitter_;
 }
 
 Tag ShadowNode::getTag() const {
-  return family_->tag_;
+  return tag_;
 }
 
-SurfaceId ShadowNode::getSurfaceId() const {
-  return family_->surfaceId_;
-}
-
-const ComponentDescriptor &ShadowNode::getComponentDescriptor() const {
-  return family_->componentDescriptor_;
-}
-
-const State::Shared &ShadowNode::getState() const {
-  return state_;
-}
-
-State::Shared ShadowNode::getMostRecentState() const {
-  if (state_) {
-    auto commitedState = state_->getMostRecentState();
-
-    // Commited state can be `null` in case if no one node was commited yet;
-    // in this case we return own `state`.
-    return commitedState ? commitedState : state_;
-  }
-
-  return ShadowNodeFragment::statePlaceholder();
+Tag ShadowNode::getRootTag() const {
+  return rootTag_;
 }
 
 SharedLocalData ShadowNode::getLocalData() const {
@@ -167,8 +109,6 @@ void ShadowNode::appendChild(const SharedShadowNode &child) {
   auto nonConstChildren =
       std::const_pointer_cast<SharedShadowNodeList>(children_);
   nonConstChildren->push_back(child);
-
-  child->family_->setParent(family_);
 }
 
 void ShadowNode::replaceChild(
@@ -191,8 +131,6 @@ void ShadowNode::replaceChild(
 
   std::replace(
       nonConstChildren->begin(), nonConstChildren->end(), oldChild, newChild);
-
-  newChild->family_->setParent(family_);
 }
 
 void ShadowNode::setLocalData(const SharedLocalData &localData) {
@@ -208,53 +146,23 @@ void ShadowNode::cloneChildrenIfShared() {
   children_ = std::make_shared<SharedShadowNodeList>(*children_);
 }
 
-void ShadowNode::setMounted(bool mounted) const {
-  family_->eventEmitter_->setEnabled(mounted);
-  if (mounted && state_) {
-    state_->commit(*this);
-  }
-}
-
-AncestorList ShadowNode::getAncestors(
-    ShadowNode const &ancestorShadowNode) const {
-  auto ancestors = AncestorList{};
-  auto families = better::small_vector<ShadowNodeFamily const *, 64>{};
-  auto ancestorFamily = ancestorShadowNode.family_.get();
-  auto descendantFamily = family_.get();
-
-  auto family = descendantFamily;
-  while (family && family != ancestorFamily) {
-    families.push_back(family);
-    family = family->parent_.lock().get();
+bool ShadowNode::constructAncestorPath(
+    const ShadowNode &ancestorShadowNode,
+    std::vector<std::reference_wrapper<const ShadowNode>> &ancestors) const {
+  // Note: We have a decent idea of how to make it reasonable performant.
+  // This is not implemented yet though. See T36620537 for more details.
+  if (this == &ancestorShadowNode) {
+    return true;
   }
 
-  if (family != ancestorFamily) {
-    ancestors.clear();
-    return ancestors;
-  }
-
-  auto parentNode = &ancestorShadowNode;
-  for (auto it = families.rbegin(); it != families.rend(); it++) {
-    auto childFamily = *it;
-    auto found = bool{false};
-    auto childIndex = int{0};
-    for (const auto &childNode : *parentNode->children_) {
-      if (childNode->family_.get() == childFamily) {
-        ancestors.push_back({*parentNode, childIndex});
-        parentNode = childNode.get();
-        found = true;
-        break;
-      }
-      childIndex++;
-    }
-
-    if (!found) {
-      ancestors.clear();
-      return ancestors;
+  for (const auto &childShadowNode : *ancestorShadowNode.children_) {
+    if (constructAncestorPath(*childShadowNode, ancestors)) {
+      ancestors.push_back(std::ref(ancestorShadowNode));
+      return true;
     }
   }
 
-  return ancestors;
+  return false;
 }
 
 #pragma mark - DebugStringConvertible
@@ -286,7 +194,7 @@ SharedDebugStringConvertibleList ShadowNode::getDebugChildren() const {
 SharedDebugStringConvertibleList ShadowNode::getDebugProps() const {
   return props_->getDebugProps() +
       SharedDebugStringConvertibleList{
-          debugStringConvertibleItem("tag", folly::to<std::string>(getTag()))};
+          debugStringConvertibleItem("tag", folly::to<std::string>(tag_))};
 }
 #endif
 

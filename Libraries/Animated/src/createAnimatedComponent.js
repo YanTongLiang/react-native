@@ -11,12 +11,12 @@
 
 const {AnimatedEvent} = require('./AnimatedEvent');
 const AnimatedProps = require('./nodes/AnimatedProps');
-const React = require('react');
-const DeprecatedViewStylePropTypes = require('../../DeprecatedPropTypes/DeprecatedViewStylePropTypes');
+const React = require('React');
+const DeprecatedViewStylePropTypes = require('DeprecatedViewStylePropTypes');
 
-const invariant = require('invariant');
+const invariant = require('fbjs/lib/invariant');
 
-function createAnimatedComponent(Component: any, defaultProps: any): any {
+function createAnimatedComponent(Component: any): any {
   invariant(
     typeof Component !== 'function' ||
       (Component.prototype && Component.prototype.isReactComponent),
@@ -25,16 +25,18 @@ function createAnimatedComponent(Component: any, defaultProps: any): any {
   );
 
   class AnimatedComponent extends React.Component<Object> {
-    _component: any; // TODO T53738161: flow type this, and the whole file
+    _component: any;
     _invokeAnimatedPropsCallbackOnMount: boolean = false;
     _prevComponent: any;
     _propsAnimated: AnimatedProps;
     _eventDetachers: Array<Function> = [];
+    _setComponentRef: Function;
 
     static __skipSetNativeProps_FOR_TESTS_ONLY = false;
 
     constructor(props: Object) {
       super(props);
+      this._setComponentRef = this._setComponentRef.bind(this);
     }
 
     componentWillUnmount() {
@@ -63,7 +65,7 @@ function createAnimatedComponent(Component: any, defaultProps: any): any {
     _attachNativeEvents() {
       // Make sure to get the scrollable node for components that implement
       // `ScrollResponder.Mixin`.
-      const scrollableNode = this._component?.getScrollableNode
+      const scrollableNode = this._component.getScrollableNode
         ? this._component.getScrollableNode()
         : this._component;
 
@@ -96,11 +98,7 @@ function createAnimatedComponent(Component: any, defaultProps: any): any {
         this._invokeAnimatedPropsCallbackOnMount = true;
       } else if (
         AnimatedComponent.__skipSetNativeProps_FOR_TESTS_ONLY ||
-        // For animating properties of non-leaf/non-native components
-        typeof this._component.setNativeProps !== 'function' ||
-        // In Fabric, force animations to go through forceUpdate and skip setNativeProps
-        // eslint-disable-next-line dot-notation
-        this._component['_internalInstanceHandle']?.stateNode?.canonical != null
+        typeof this._component.setNativeProps !== 'function'
       ) {
         this.forceUpdate();
       } else if (!this._propsAnimated.__isNative) {
@@ -153,7 +151,6 @@ function createAnimatedComponent(Component: any, defaultProps: any): any {
       const props = this._propsAnimated.__getValue();
       return (
         <Component
-          {...defaultProps}
           {...props}
           ref={this._setComponentRef}
           // The native driver updates views directly through the UI thread so we
@@ -167,10 +164,10 @@ function createAnimatedComponent(Component: any, defaultProps: any): any {
       );
     }
 
-    _setComponentRef = c => {
+    _setComponentRef(c) {
       this._prevComponent = this._component;
       this._component = c;
-    };
+    }
 
     // A third party library can use getNode()
     // to get the node reference of the decorated component

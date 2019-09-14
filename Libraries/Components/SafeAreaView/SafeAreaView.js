@@ -4,22 +4,23 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @flow
+ * @flow strict-local
  * @format
  */
 
-const Platform = require('../../Utilities/Platform');
-const React = require('react');
-const View = require('../View/View');
+const Platform = require('Platform');
+const React = require('React');
+const View = require('View');
+const requireNativeComponent = require('requireNativeComponent');
 
-import type {ViewProps} from '../View/ViewPropTypes';
+import type {ViewProps} from 'ViewPropTypes';
 
 type Props = $ReadOnly<{|
   ...ViewProps,
   emulateUnlessSupported?: boolean,
 |}>;
 
-let exported: Class<React$Component<Props>>;
+let exported;
 
 /**
  * Renders nested content and automatically applies paddings reflect the portion
@@ -31,37 +32,19 @@ let exported: Class<React$Component<Props>>;
  * sensor housing area on iPhone X).
  */
 if (Platform.OS === 'android') {
-  const SafeAreaView = (
-    props: Props,
-    forwardedRef?: ?React.Ref<typeof View>,
-  ) => {
-    const {emulateUnlessSupported, ...localProps} = props;
-    return <View {...localProps} ref={forwardedRef} />;
+  exported = class SafeAreaView extends React.Component<Props> {
+    render(): React.Node {
+      const {emulateUnlessSupported, ...props} = this.props;
+      return <View {...props} />;
+    }
   };
-
-  const SafeAreaViewRef = React.forwardRef(SafeAreaView);
-  SafeAreaViewRef.displayName = 'SafeAreaView';
-  exported = ((SafeAreaViewRef: any): Class<React.Component<Props>>);
 } else {
-  const RCTSafeAreaViewNativeComponent = require('./RCTSafeAreaViewNativeComponent')
-    .default;
-
-  const SafeAreaView = (
-    props: Props,
-    forwardedRef?: ?React.Ref<typeof RCTSafeAreaViewNativeComponent>,
-  ) => {
-    return (
-      <RCTSafeAreaViewNativeComponent
-        emulateUnlessSupported={true}
-        {...props}
-        ref={forwardedRef}
-      />
-    );
+  const RCTSafeAreaView = requireNativeComponent('RCTSafeAreaView');
+  exported = class SafeAreaView extends React.Component<Props> {
+    render(): React.Node {
+      return <RCTSafeAreaView emulateUnlessSupported={true} {...this.props} />;
+    }
   };
-
-  const SafeAreaViewRef = React.forwardRef(SafeAreaView);
-  SafeAreaViewRef.displayName = 'SafeAreaView';
-  exported = ((SafeAreaViewRef: any): Class<React.Component<Props>>);
 }
 
 module.exports = exported;

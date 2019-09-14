@@ -33,7 +33,6 @@
 #endif
 
 NSString *const RCTContentDidAppearNotification = @"RCTContentDidAppearNotification";
-NSString *const RCTUserInterfaceStyleDidChangeNotification = @"RCTUserInterfaceStyleDidChangeNotification";
 
 @interface RCTUIManager (RCTRootView)
 
@@ -344,13 +343,13 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
 
   _intrinsicContentSize = intrinsicContentSize;
 
+  [self invalidateIntrinsicContentSize];
+  [self.superview setNeedsLayout];
+
   // Don't notify the delegate if the content remains invisible or its size has not changed
   if (bothSizesHaveAZeroDimension || sizesAreEqual) {
     return;
   }
-
-  [self invalidateIntrinsicContentSize];
-  [self.superview setNeedsLayout];
 
   [_delegate rootViewDidChangeIntrinsicSize:self];
 }
@@ -367,26 +366,15 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
   [self showLoadingView];
 }
 
-#if defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && defined(__IPHONE_13_0) && \
-    __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_13_0
-- (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection
-{
-  [super traitCollectionDidChange:previousTraitCollection];
-
-  if (@available(iOS 13.0, *)) {
-    if ([previousTraitCollection hasDifferentColorAppearanceComparedToTraitCollection:self.traitCollection]) {
-      [[NSNotificationCenter defaultCenter] postNotificationName:RCTUserInterfaceStyleDidChangeNotification
-                                                          object:self
-                                                        userInfo:@{@"traitCollection": self.traitCollection}];
-    }
-  }
-}
-#endif
-
 - (void)dealloc
 {
   [[NSNotificationCenter defaultCenter] removeObserver:self];
   [_contentView invalidate];
+}
+
+- (void)cancelTouches
+{
+  [[_contentView touchHandler] cancel];
 }
 
 @end
@@ -397,12 +385,6 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
 {
   RCTLogWarn(@"Calling deprecated `[-RCTRootView intrinsicSize]`.");
   return self.intrinsicContentSize;
-}
-
-- (void)cancelTouches
-{
-  RCTLogWarn(@"`-[RCTRootView cancelTouches]` is deprecated and will be deleted soon.");
-  [[_contentView touchHandler] cancel];
 }
 
 @end

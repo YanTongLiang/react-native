@@ -10,22 +10,23 @@
 
 'use strict';
 
-const Dimensions = require('../Utilities/Dimensions');
-const FrameRateLogger = require('../Interaction/FrameRateLogger');
-const Keyboard = require('./Keyboard/Keyboard');
-const ReactNative = require('../Renderer/shims/ReactNative');
-const TextInputState = require('./TextInput/TextInputState');
-const UIManager = require('../ReactNative/UIManager');
-const Platform = require('../Utilities/Platform');
+const Dimensions = require('Dimensions');
+const FrameRateLogger = require('FrameRateLogger');
+const Keyboard = require('Keyboard');
+const ReactNative = require('ReactNative');
+const TextInputState = require('TextInputState');
+const UIManager = require('UIManager');
 
-const invariant = require('invariant');
+const invariant = require('fbjs/lib/invariant');
 const nullthrows = require('nullthrows');
 const performanceNow = require('fbjs/lib/performanceNow');
 const warning = require('fbjs/lib/warning');
 
-import type {PressEvent, ScrollEvent} from '../Types/CoreEventTypes';
-import type {KeyboardEvent} from './Keyboard/Keyboard';
-import type EmitterSubscription from '../vendor/emitter/EmitterSubscription';
+const {ScrollViewManager} = require('NativeModules');
+
+import type {PressEvent, ScrollEvent} from 'CoreEventTypes';
+import type {KeyboardEvent} from 'Keyboard';
+import type EmitterSubscription from 'EmitterSubscription';
 
 /**
  * Mixin that can be integrated in order to handle scrolling that plays well
@@ -107,13 +108,13 @@ import type EmitterSubscription from '../vendor/emitter/EmitterSubscription';
 
 const IS_ANIMATING_TOUCH_START_THRESHOLD_MS = 16;
 
-export type State = {|
+type State = {
   isTouching: boolean,
   lastMomentumScrollBeginTime: number,
   lastMomentumScrollEndTime: number,
   observedScrollSinceBecomingResponder: boolean,
   becameResponderWhileAnimating: boolean,
-|};
+};
 
 const ScrollResponderMixin = {
   _subscriptionKeyboardWillShow: (null: ?EmitterSubscription),
@@ -140,10 +141,6 @@ const ScrollResponderMixin = {
    * Invoke this from an `onScroll` event.
    */
   scrollResponderHandleScrollShouldSetResponder: function(): boolean {
-    // Allow any event touch pass through if the default pan responder is disabled
-    if (this.props.disableScrollViewPanResponder === true) {
-      return false;
-    }
     return this.state.isTouching;
   },
 
@@ -175,11 +172,6 @@ const ScrollResponderMixin = {
   scrollResponderHandleStartShouldSetResponder: function(
     e: PressEvent,
   ): boolean {
-    // Allow any event touch pass through if the default pan responder is disabled
-    if (this.props.disableScrollViewPanResponder === true) {
-      return false;
-    }
-
     const currentlyFocusedTextInput = TextInputState.currentlyFocusedField();
 
     if (
@@ -210,11 +202,6 @@ const ScrollResponderMixin = {
     // * it is already animating/decelerating
     if (this.scrollResponderIsAnimating()) {
       return true;
-    }
-
-    // Allow any event touch pass through if the default pan responder is disabled
-    if (this.props.disableScrollViewPanResponder === true) {
-      return false;
     }
 
     // * the keyboard is up, keyboardShouldPersistTaps is 'never' (the default),
@@ -509,7 +496,10 @@ const ScrollResponderMixin = {
     |},
     animated?: boolean, // deprecated, put this inside the rect argument instead
   ) {
-    invariant(Platform.OS === 'ios', 'zoomToRect is not implemented');
+    invariant(
+      ScrollViewManager && ScrollViewManager.zoomToRect,
+      'zoomToRect is not implemented',
+    );
     if ('animated' in rect) {
       animated = rect.animated;
       delete rect.animated;
@@ -518,11 +508,10 @@ const ScrollResponderMixin = {
         '`scrollResponderZoomTo` `animated` argument is deprecated. Use `options.animated` instead',
       );
     }
-
-    UIManager.dispatchViewManagerCommand(
+    ScrollViewManager.zoomToRect(
       this.scrollResponderGetScrollableNode(),
-      UIManager.getViewManagerConfig('RCTScrollView').Commands.zoomToRect,
-      [rect, animated !== false],
+      rect,
+      animated !== false,
     );
   },
 
@@ -625,7 +614,6 @@ const ScrollResponderMixin = {
       'keyboardWillShow',
       this.scrollResponderKeyboardWillShow,
     );
-
     this._subscriptionKeyboardWillHide = Keyboard.addListener(
       'keyboardWillHide',
       this.scrollResponderKeyboardWillHide,

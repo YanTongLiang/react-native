@@ -10,67 +10,47 @@
 
 'use strict';
 
-const DeprecatedEdgeInsetsPropType = require('../../DeprecatedPropTypes/DeprecatedEdgeInsetsPropType');
-const React = require('react');
+const DeprecatedEdgeInsetsPropType = require('DeprecatedEdgeInsetsPropType');
+const React = require('React');
 const PropTypes = require('prop-types');
-const Touchable = require('./Touchable');
-const View = require('../View/View');
+const Touchable = require('Touchable');
+const View = require('View');
 
 const createReactClass = require('create-react-class');
-const ensurePositiveDelayProps = require('./ensurePositiveDelayProps');
+const ensurePositiveDelayProps = require('ensurePositiveDelayProps');
 
 const {
+  DeprecatedAccessibilityComponentTypes,
   DeprecatedAccessibilityRoles,
-} = require('../../DeprecatedPropTypes/DeprecatedViewAccessibility');
+  DeprecatedAccessibilityStates,
+  DeprecatedAccessibilityTraits,
+} = require('DeprecatedViewAccessibility');
 
+import type {PressEvent} from 'CoreEventTypes';
+import type {EdgeInsetsProp} from 'EdgeInsetsPropType';
 import type {
-  SyntheticEvent,
-  LayoutEvent,
-  PressEvent,
-} from '../../Types/CoreEventTypes';
-import type {EdgeInsetsProp} from '../../StyleSheet/EdgeInsetsPropType';
-import type {
+  AccessibilityComponentType,
   AccessibilityRole,
-  AccessibilityState,
-  AccessibilityActionInfo,
-  AccessibilityActionEvent,
-} from '../View/ViewAccessibility';
-
-type TargetEvent = SyntheticEvent<
-  $ReadOnly<{|
-    target: number,
-  |}>,
->;
-
-type BlurEvent = TargetEvent;
-type FocusEvent = TargetEvent;
+  AccessibilityStates,
+  AccessibilityTraits,
+} from 'ViewAccessibility';
 
 const PRESS_RETENTION_OFFSET = {top: 20, left: 20, right: 20, bottom: 30};
 
-const OVERRIDE_PROPS = [
-  'accessibilityLabel',
-  'accessibilityHint',
-  'accessibilityIgnoresInvertColors',
-  'accessibilityRole',
-  'accessibilityState',
-  'accessibilityActions',
-  'onAccessibilityAction',
-  'hitSlop',
-  'nativeID',
-  'onBlur',
-  'onFocus',
-  'onLayout',
-  'testID',
-];
-
 export type Props = $ReadOnly<{|
   accessible?: ?boolean,
-  accessibilityLabel?: ?Stringish,
+  accessibilityComponentType?: ?AccessibilityComponentType,
+  accessibilityLabel?:
+    | null
+    | React$PropType$Primitive<any>
+    | string
+    | Array<any>
+    | any,
   accessibilityHint?: ?Stringish,
   accessibilityIgnoresInvertColors?: ?boolean,
   accessibilityRole?: ?AccessibilityRole,
-  accessibilityState?: ?AccessibilityState,
-  accessibilityActions?: ?$ReadOnlyArray<AccessibilityActionInfo>,
+  accessibilityStates?: ?AccessibilityStates,
+  accessibilityTraits?: ?AccessibilityTraits,
   children?: ?React.Node,
   delayLongPress?: ?number,
   delayPressIn?: ?number,
@@ -78,15 +58,13 @@ export type Props = $ReadOnly<{|
   disabled?: ?boolean,
   hitSlop?: ?EdgeInsetsProp,
   nativeID?: ?string,
-  touchSoundDisabled?: ?boolean,
-  onBlur?: ?(e: BlurEvent) => void,
-  onFocus?: ?(e: FocusEvent) => void,
-  onLayout?: ?(event: LayoutEvent) => mixed,
-  onLongPress?: ?(event: PressEvent) => mixed,
-  onPress?: ?(event: PressEvent) => mixed,
-  onPressIn?: ?(event: PressEvent) => mixed,
-  onPressOut?: ?(event: PressEvent) => mixed,
-  onAccessibilityAction?: ?(event: AccessibilityActionEvent) => void,
+  onBlur?: ?Function,
+  onFocus?: ?Function,
+  onLayout?: ?Function,
+  onLongPress?: ?Function,
+  onPress?: ?Function,
+  onPressIn?: ?Function,
+  onPressOut?: ?Function,
   pressRetentionOffset?: ?EdgeInsetsProp,
   rejectResponderTermination?: ?boolean,
   testID?: ?string,
@@ -107,11 +85,17 @@ const TouchableWithoutFeedback = ((createReactClass({
     accessible: PropTypes.bool,
     accessibilityLabel: PropTypes.node,
     accessibilityHint: PropTypes.string,
-    accessibilityIgnoresInvertColors: PropTypes.bool,
+    accessibilityComponentType: PropTypes.oneOf(
+      DeprecatedAccessibilityComponentTypes,
+    ),
     accessibilityRole: PropTypes.oneOf(DeprecatedAccessibilityRoles),
-    accessibilityState: PropTypes.object,
-    accessibilityActions: PropTypes.array,
-    onAccessibilityAction: PropTypes.func,
+    accessibilityStates: PropTypes.arrayOf(
+      PropTypes.oneOf(DeprecatedAccessibilityStates),
+    ),
+    accessibilityTraits: PropTypes.oneOfType([
+      PropTypes.oneOf(DeprecatedAccessibilityTraits),
+      PropTypes.arrayOf(PropTypes.oneOf(DeprecatedAccessibilityTraits)),
+    ]),
     /**
      * When `accessible` is true (which is the default) this may be called when
      * the OS-specific concept of "focus" occurs. Some platforms may not have
@@ -148,10 +132,6 @@ const TouchableWithoutFeedback = ((createReactClass({
      *   `{nativeEvent: {layout: {x, y, width, height}}}`
      */
     onLayout: PropTypes.func,
-    /**
-     * If true, doesn't play system sound on touch (Android Only)
-     **/
-    touchSoundDisabled: PropTypes.bool,
 
     onLongPress: PropTypes.func,
 
@@ -255,20 +235,18 @@ const TouchableWithoutFeedback = ((createReactClass({
         Touchable.renderDebugView({color: 'red', hitSlop: this.props.hitSlop}),
       );
     }
-
-    const overrides = {};
-    for (const prop of OVERRIDE_PROPS) {
-      if (this.props[prop] !== undefined) {
-        overrides[prop] = this.props[prop];
-      }
-    }
-
     return (React: any).cloneElement(child, {
-      ...overrides,
       accessible: this.props.accessible !== false,
-      focusable:
-        this.props.focusable !== false && this.props.onPress !== undefined,
-      onClick: this.touchableHandlePress,
+      accessibilityLabel: this.props.accessibilityLabel,
+      accessibilityHint: this.props.accessibilityHint,
+      accessibilityComponentType: this.props.accessibilityComponentType,
+      accessibilityRole: this.props.accessibilityRole,
+      accessibilityStates: this.props.accessibilityStates,
+      accessibilityTraits: this.props.accessibilityTraits,
+      nativeID: this.props.nativeID,
+      testID: this.props.testID,
+      onLayout: this.props.onLayout,
+      hitSlop: this.props.hitSlop,
       onStartShouldSetResponder: this.touchableHandleStartShouldSetResponder,
       onResponderTerminationRequest: this
         .touchableHandleResponderTerminationRequest,

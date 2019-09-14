@@ -7,9 +7,8 @@
 
 #import "RCTSwitchComponentView.h"
 
-#import <react/components/rncore/ComponentDescriptors.h>
-#import <react/components/rncore/EventEmitters.h>
-#import <react/components/rncore/Props.h>
+#import <react/components/switch/SwitchEventEmitter.h>
+#import <react/components/switch/SwitchProps.h>
 
 using namespace facebook::react;
 
@@ -26,7 +25,9 @@ using namespace facebook::react;
 
     _switchView = [[UISwitch alloc] initWithFrame:self.bounds];
 
-    [_switchView addTarget:self action:@selector(onChange:) forControlEvents:UIControlEventValueChanged];
+    [_switchView addTarget:self
+                    action:@selector(onChange:)
+          forControlEvents:UIControlEventValueChanged];
 
     _switchView.on = defaultProps->value;
 
@@ -36,17 +37,12 @@ using namespace facebook::react;
   return self;
 }
 
-#pragma mark - RCTComponentViewProtocol
-
-+ (ComponentDescriptorProvider)componentDescriptorProvider
+- (void)updateProps:(SharedProps)props oldProps:(SharedProps)oldProps
 {
-  return concreteComponentDescriptorProvider<SwitchComponentDescriptor>();
-}
-
-- (void)updateProps:(Props::Shared const &)props oldProps:(Props::Shared const &)oldProps
-{
-  const auto &oldSwitchProps = *std::static_pointer_cast<const SwitchProps>(_props);
+  const auto &oldSwitchProps = *std::static_pointer_cast<const SwitchProps>(oldProps ?: _props);
   const auto &newSwitchProps = *std::static_pointer_cast<const SwitchProps>(props);
+
+  [super updateProps:props oldProps:oldProps];
 
   // `value`
   if (oldSwitchProps.value != newSwitchProps.value) {
@@ -73,8 +69,6 @@ using namespace facebook::react;
   if (oldSwitchProps.thumbTintColor != newSwitchProps.thumbTintColor) {
     _switchView.thumbTintColor = [UIColor colorWithCGColor:newSwitchProps.thumbTintColor.get()];
   }
-
-  [super updateProps:props oldProps:oldProps];
 }
 
 - (void)onChange:(UISwitch *)sender
@@ -84,8 +78,7 @@ using namespace facebook::react;
   }
   _wasOn = sender.on;
 
-  std::dynamic_pointer_cast<const SwitchEventEmitter>(_eventEmitter)
-      ->onChange(SwitchOnChangeStruct{.value = static_cast<bool>(sender.on)});
+  std::dynamic_pointer_cast<const SwitchEventEmitter>(_eventEmitter)->onChange(sender.on);
 }
 
 @end

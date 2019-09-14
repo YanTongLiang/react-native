@@ -9,22 +9,21 @@
  */
 'use strict';
 
-const Animated = require('../../Animated/src/Animated');
-const DeprecatedViewPropTypes = require('../../DeprecatedPropTypes/DeprecatedViewPropTypes');
-const DeprecatedEdgeInsetsPropType = require('../../DeprecatedPropTypes/DeprecatedEdgeInsetsPropType');
-const NativeMethodsMixin = require('../../Renderer/shims/NativeMethodsMixin');
-const Platform = require('../../Utilities/Platform');
+const Animated = require('Animated');
+const DeprecatedViewPropTypes = require('DeprecatedViewPropTypes');
+const DeprecatedEdgeInsetsPropType = require('DeprecatedEdgeInsetsPropType');
+const NativeMethodsMixin = require('NativeMethodsMixin');
 const PropTypes = require('prop-types');
-const React = require('react');
-const Touchable = require('./Touchable');
-const TouchableWithoutFeedback = require('./TouchableWithoutFeedback');
+const React = require('React');
+const Touchable = require('Touchable');
+const TouchableWithoutFeedback = require('TouchableWithoutFeedback');
 
 const createReactClass = require('create-react-class');
 
-import type {EdgeInsetsProp} from '../../StyleSheet/EdgeInsetsPropType';
-import type {ViewStyleProp} from '../../StyleSheet/StyleSheet';
-import type {Props as TouchableWithoutFeedbackProps} from './TouchableWithoutFeedback';
-import type {PressEvent} from '../../Types/CoreEventTypes';
+import type {EdgeInsetsProp} from 'EdgeInsetsPropType';
+import type {ViewStyleProp} from 'StyleSheet';
+import type {Props as TouchableWithoutFeedbackProps} from 'TouchableWithoutFeedback';
+import type {PressEvent} from 'CoreEventTypes';
 
 type State = {
   animationID: ?number,
@@ -53,12 +52,9 @@ type Props = $ReadOnly<{|
  */
 const TouchableBounce = ((createReactClass({
   displayName: 'TouchableBounce',
-  mixins: [Touchable.Mixin.withoutDefaultFocusAndBlur, NativeMethodsMixin],
+  mixins: [Touchable.Mixin, NativeMethodsMixin],
 
   propTypes: {
-    /* $FlowFixMe(>=0.89.0 site=react_native_fb) This comment suppresses an
-     * error found when Flow v0.89 was deployed. To see the error, delete this
-     * comment and run Flow. */
     ...TouchableWithoutFeedback.propTypes,
     // The function passed takes a callback to start the animation which should
     // be run after this onPress handler is done. You can use this (for example)
@@ -109,6 +105,13 @@ const TouchableBounce = ((createReactClass({
   },
 
   /**
+   * Triggers a bounce animation without invoking any callbacks.
+   */
+  bounce: function() {
+    this.bounceTo(0.93, 0.1, 0, () => this.bounceTo(1, 0.4, 0));
+  },
+
+  /**
    * `Touchable.Mixin` self callbacks. The mixin will invoke these if they are
    * defined on your component.
    */
@@ -120,20 +123,6 @@ const TouchableBounce = ((createReactClass({
   touchableHandleActivePressOut: function(e: PressEvent) {
     this.bounceTo(1, 0.4, 0);
     this.props.onPressOut && this.props.onPressOut(e);
-  },
-
-  touchableHandleFocus: function(e: Event) {
-    if (Platform.isTV) {
-      this.bounceTo(0.93, 0.1, 0);
-    }
-    this.props.onFocus && this.props.onFocus(e);
-  },
-
-  touchableHandleBlur: function(e: Event) {
-    if (Platform.isTV) {
-      this.bounceTo(1, 0.4, 0);
-    }
-    this.props.onBlur && this.props.onBlur(e);
   },
 
   touchableHandlePress: function(e: PressEvent) {
@@ -180,18 +169,10 @@ const TouchableBounce = ((createReactClass({
         accessibilityLabel={this.props.accessibilityLabel}
         accessibilityHint={this.props.accessibilityHint}
         accessibilityRole={this.props.accessibilityRole}
-        accessibilityState={this.props.accessibilityState}
-        accessibilityActions={this.props.accessibilityActions}
-        onAccessibilityAction={this.props.onAccessibilityAction}
+        accessibilityStates={this.props.accessibilityStates}
         nativeID={this.props.nativeID}
         testID={this.props.testID}
         hitSlop={this.props.hitSlop}
-        focusable={
-          this.props.focusable !== false &&
-          this.props.onPress !== undefined &&
-          !this.props.disabled
-        }
-        onClick={this.touchableHandlePress}
         onStartShouldSetResponder={this.touchableHandleStartShouldSetResponder}
         onResponderTerminationRequest={
           this.touchableHandleResponderTerminationRequest

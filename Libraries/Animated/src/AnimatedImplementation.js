@@ -403,12 +403,7 @@ const parallel = function(
 
 const delay = function(time: number): CompositeAnimation {
   // Would be nice to make a specialized implementation
-  return timing(new AnimatedValue(0), {
-    toValue: 0,
-    delay: time,
-    duration: 0,
-    useNativeDriver: false,
-  });
+  return timing(new AnimatedValue(0), {toValue: 0, delay: time, duration: 0});
 };
 
 const stagger = function(
@@ -422,14 +417,11 @@ const stagger = function(
   );
 };
 
-type LoopAnimationConfig = {
-  iterations: number,
-  resetBeforeIteration?: boolean,
-};
+type LoopAnimationConfig = {iterations: number};
 
 const loop = function(
   animation: CompositeAnimation,
-  {iterations = -1, resetBeforeIteration = true}: LoopAnimationConfig = {},
+  {iterations = -1}: LoopAnimationConfig = {},
 ): CompositeAnimation {
   let isFinished = false;
   let iterationsSoFar = 0;
@@ -444,7 +436,7 @@ const loop = function(
           callback && callback(result);
         } else {
           iterationsSoFar++;
-          resetBeforeIteration && animation.reset();
+          animation.reset();
           animation.start(restart);
         }
       };
@@ -522,8 +514,6 @@ const event = function(argMapping: Array<?Mapping>, config?: EventConfig): any {
  * easy to build and maintain. `Animated` focuses on declarative relationships
  * between inputs and outputs, with configurable transforms in between, and
  * simple `start`/`stop` methods to control time-based animation execution.
- * If additional transforms are added, be sure to include them in
- * AnimatedMock.js as well.
  *
  * See http://facebook.github.io/react-native/docs/animated.html
  */
@@ -694,11 +684,6 @@ module.exports = {
    */
   forkEvent,
   unforkEvent,
-
-  /**
-   * Expose Event class, so it can be used as a type for type checkers.
-   */
-  Event: AnimatedEvent,
 
   __PropsOnlyForTests: AnimatedProps,
 };

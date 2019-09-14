@@ -13,15 +13,17 @@
 
 'use strict';
 
-const RCTDatePickerNativeComponent = require('./RCTDatePickerNativeComponent');
-const React = require('react');
-const StyleSheet = require('../../StyleSheet/StyleSheet');
-const View = require('../View/View');
+const React = require('React');
+const invariant = require('fbjs/lib/invariant');
+const StyleSheet = require('StyleSheet');
+const View = require('View');
 
-const invariant = require('invariant');
+const requireNativeComponent = require('requireNativeComponent');
 
-import type {SyntheticEvent} from '../../Types/CoreEventTypes';
-import type {ViewProps} from '../View/ViewPropTypes';
+import type {ViewProps} from 'ViewPropTypes';
+import type {SyntheticEvent} from 'CoreEventTypes';
+
+const RCTDatePickerIOS = requireNativeComponent('RCTDatePicker');
 
 type Event = SyntheticEvent<
   $ReadOnly<{|
@@ -112,11 +114,12 @@ type Props = $ReadOnly<{|
  * source of truth.
  */
 class DatePickerIOS extends React.Component<Props> {
-  static DefaultProps: {|mode: $TEMPORARY$string<'datetime'>|} = {
+  static DefaultProps = {
     mode: 'datetime',
   };
 
-  _picker: ?React.ElementRef<typeof RCTDatePickerNativeComponent> = null;
+  // $FlowFixMe How to type a native component to be able to call setNativeProps
+  _picker: ?React.ElementRef<typeof RCTDatePickerIOS> = null;
 
   componentDidUpdate() {
     if (this.props.date) {
@@ -136,7 +139,7 @@ class DatePickerIOS extends React.Component<Props> {
     this.props.onChange && this.props.onChange(event);
   };
 
-  render(): React.Node {
+  render() {
     const props = this.props;
     invariant(
       props.date || props.initialDate,
@@ -144,7 +147,7 @@ class DatePickerIOS extends React.Component<Props> {
     );
     return (
       <View style={props.style}>
-        <RCTDatePickerNativeComponent
+        <RCTDatePickerIOS
           testID={props.testID}
           ref={picker => {
             this._picker = picker;
@@ -154,8 +157,8 @@ class DatePickerIOS extends React.Component<Props> {
             props.date
               ? props.date.getTime()
               : props.initialDate
-              ? props.initialDate.getTime()
-              : undefined
+                ? props.initialDate.getTime()
+                : undefined
           }
           locale={
             props.locale != null && props.locale !== ''

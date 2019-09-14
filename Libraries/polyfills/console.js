@@ -42,7 +42,6 @@ const inspect = (function() {
   function inspect(obj, opts) {
     var ctx = {
       seen: [],
-      formatValueCalls: 0,
       stylize: stylizeNoColor,
     };
     return formatValue(ctx, obj, opts.depth);
@@ -63,13 +62,6 @@ const inspect = (function() {
   }
 
   function formatValue(ctx, value, recurseTimes) {
-    ctx.formatValueCalls++;
-    if (ctx.formatValueCalls > 200) {
-      return `[TOO BIG formatValueCalls ${
-        ctx.formatValueCalls
-      } exceeded limit of 200]`;
-    }
-
     // Primitive types cannot have properties
     var primitive = formatPrimitive(ctx, value);
     if (primitive) {
@@ -369,6 +361,17 @@ const inspect = (function() {
     return typeof arg === 'function';
   }
 
+  function isPrimitive(arg) {
+    return (
+      arg === null ||
+      typeof arg === 'boolean' ||
+      typeof arg === 'number' ||
+      typeof arg === 'string' ||
+      typeof arg === 'symbol' || // ES6 symbol
+      typeof arg === 'undefined'
+    );
+  }
+
   function objectToString(o) {
     return Object.prototype.toString.call(o);
   }
@@ -410,20 +413,8 @@ function getNativeLogFunction(level) {
         .join(', ');
     }
 
-    // TRICKY
-    // If more than one argument is provided, the code above collapses them all
-    // into a single formatted string. This transform wraps string arguments in
-    // single quotes (e.g. "foo" -> "'foo'") which then breaks the "Warning:"
-    // check below. So it's important that we look at the first argument, rather
-    // than the formatted argument string.
-    const firstArg = arguments[0];
-
     let logLevel = level;
-    if (
-      typeof firstArg === 'string' &&
-      firstArg.slice(0, 9) === 'Warning: ' &&
-      logLevel >= LOG_LEVELS.error
-    ) {
+    if (str.slice(0, 9) === 'Warning: ' && logLevel >= LOG_LEVELS.error) {
       // React warnings use console.error so that a stack trace is shown,
       // but we don't (currently) want these to show a redbox
       // (Note: Logic duplicated in ExceptionsManager.js.)
@@ -529,32 +520,13 @@ function consoleGroupPolyfill(label) {
   groupStack.push(GROUP_PAD);
 }
 
-function consoleGroupCollapsedPolyfill(label) {
-  global.nativeLoggingHook(groupFormat(GROUP_CLOSE, label), LOG_LEVELS.info);
-  groupStack.push(GROUP_PAD);
-}
-
 function consoleGroupEndPolyfill() {
   groupStack.pop();
   global.nativeLoggingHook(groupFormat(GROUP_CLOSE), LOG_LEVELS.info);
 }
 
-function consoleAssertPolyfill(expression, label) {
-  if (!expression) {
-    global.nativeLoggingHook('Assertion failed: ' + label, LOG_LEVELS.error);
-  }
-}
-
 if (global.nativeLoggingHook) {
   const originalConsole = global.console;
-  // Preserve the original `console` as `originalConsole`
-  if (__DEV__ && originalConsole) {
-    const descriptor = Object.getOwnPropertyDescriptor(global, 'console');
-    if (descriptor) {
-      Object.defineProperty(global, 'originalConsole', descriptor);
-    }
-  }
-
   global.console = {
     error: getNativeLogFunction(LOG_LEVELS.error),
     info: getNativeLogFunction(LOG_LEVELS.info),
@@ -565,27 +537,23 @@ if (global.nativeLoggingHook) {
     table: consoleTablePolyfill,
     group: consoleGroupPolyfill,
     groupEnd: consoleGroupEndPolyfill,
-    groupCollapsed: consoleGroupCollapsedPolyfill,
-    assert: consoleAssertPolyfill,
   };
 
   // If available, also call the original `console` method since that is
   // sometimes useful. Ex: on OS X, this will let you see rich output in
   // the Safari Web Inspector console.
   if (__DEV__ && originalConsole) {
+    // Preserve the original `console` as `originalConsole`
+    const descriptor = Object.getOwnPropertyDescriptor(global, 'console');
+    if (descriptor) {
+      Object.defineProperty(global, 'originalConsole', descriptor);
+    }
+
     Object.keys(console).forEach(methodName => {
       const reactNativeMethod = console[methodName];
       if (originalConsole[methodName]) {
         console[methodName] = function() {
-          // TODO(T43930203): remove this special case once originalConsole.assert properly checks
-          // the condition
-          if (methodName === 'assert') {
-            if (!arguments[0]) {
-              originalConsole.assert(...arguments);
-            }
-          } else {
-            originalConsole[methodName](...arguments);
-          }
+          originalConsole[methodName](...arguments);
           reactNativeMethod.apply(console, arguments);
         };
       }
@@ -595,6 +563,7 @@ if (global.nativeLoggingHook) {
     // we still should pass them to original console if they are
     // supported by it.
     [
+      'assert',
       'clear',
       'dir',
       'dirxml',

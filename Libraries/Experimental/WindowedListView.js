@@ -10,22 +10,22 @@
 
 'use strict';
 
-const Batchinator = require('../Interaction/Batchinator');
-const IncrementalGroup = require('./IncrementalGroup');
-const React = require('react');
-const ScrollView = require('../Components/ScrollView/ScrollView');
-const StyleSheet = require('../StyleSheet/StyleSheet');
-const Systrace = require('../Performance/Systrace');
-const View = require('../Components/View/View');
-const ViewabilityHelper = require('../Lists/ViewabilityHelper');
+const Batchinator = require('Batchinator');
+const IncrementalGroup = require('IncrementalGroup');
+const React = require('React');
+const ScrollView = require('ScrollView');
+const StyleSheet = require('StyleSheet');
+const Systrace = require('Systrace');
+const View = require('View');
+const ViewabilityHelper = require('ViewabilityHelper');
 
-const clamp = require('../Utilities/clamp');
-const deepDiffer = require('../Utilities/differ/deepDiffer');
-const infoLog = require('../Utilities/infoLog');
-const invariant = require('invariant');
+const clamp = require('clamp');
+const deepDiffer = require('deepDiffer');
+const infoLog = require('infoLog');
+const invariant = require('fbjs/lib/invariant');
 const nullthrows = require('nullthrows');
 
-import type {NativeMethodsMixinType} from '../Renderer/shims/ReactNativeTypes';
+import type {NativeMethodsMixinType} from 'ReactNativeTypes';
 
 const DEBUG = false;
 
@@ -151,7 +151,7 @@ type State = {
 };
 class WindowedListView extends React.Component<Props, State> {
   /**
-   * Recomputing which rows to render is batched up and run asynchronously to avoid wasteful updates,
+   * Recomputing which rows to render is batched up and run asynchronously to avoid wastful updates,
    * e.g. from multiple layout updates in rapid succession.
    */
   _computeRowsToRenderBatcher: Batchinator;
@@ -170,19 +170,16 @@ class WindowedListView extends React.Component<Props, State> {
   _scrollRef: ?ScrollView;
   _viewabilityHelper: ViewabilityHelper;
 
-  static defaultProps: {|
-    disableIncrementalRendering: boolean,
-    initialNumToRender: number,
-    maxNumToRender: number,
-    numToRenderAhead: number,
-    recomputeRowsBatchingPeriod: number,
-    renderScrollComponent: (props: any) => React.Node,
-    viewablePercentThreshold: number,
-  |} = {
+  static defaultProps = {
     initialNumToRender: 10,
     maxNumToRender: 30,
     numToRenderAhead: 10,
     viewablePercentThreshold: 50,
+    /* $FlowFixMe(>=0.59.0 site=react_native_fb) This comment suppresses an
+     * error caught by Flow 0.59 which was not caught before. Most likely, this
+     * error is because an exported function parameter is missing an
+     * annotation. Without an annotation, these parameters are uncovered by
+     * Flow. */
     renderScrollComponent: props => <ScrollView {...props} />,
     disableIncrementalRendering: false,
     recomputeRowsBatchingPeriod: 10, // This should capture most events that happen within a frame
@@ -211,7 +208,6 @@ class WindowedListView extends React.Component<Props, State> {
     return (
       this._scrollRef &&
       this._scrollRef.getScrollResponder &&
-      // $FlowFixMe - it actually returns ScrollView & ScrollResponder.Mixin
       this._scrollRef.getScrollResponder()
     );
   }
@@ -393,7 +389,7 @@ class WindowedListView extends React.Component<Props, State> {
     }
     this._updateVisibleRows(firstVisible, lastVisible);
 
-    // Unfortunately, we can't use <Incremental> to simplify our increment logic in this function
+    // Unfortuantely, we can't use <Incremental> to simplify our increment logic in this function
     // because we need to make sure that cells are rendered in the right order one at a time when
     // scrolling back up.
 
@@ -649,7 +645,7 @@ type CellProps = {
    * after offscreen rendering has completed, includeInLayout will be set true and the finished cell
    * can be dropped into place.
    *
-   * This is coordinated outside this component so the parent can synchronize this re-render with
+   * This is coordinated outside this component so the parent can syncronize this re-render with
    * managing the placeholder sizing.
    */
   includeInLayout: boolean,
@@ -659,7 +655,7 @@ type CellProps = {
    */
   onNewLayout: (params: {rowKey: string, layout: Object}) => void,
   /**
-   * Used to track when rendering is in progress so the parent can avoid wasteful re-renders that
+   * Used to track when rendering is in progress so the parent can avoid wastedful re-renders that
    * are just going to be invalidated once the cell finishes.
    */
   onProgressChange: (progress: {rowKey: string, inProgress: boolean}) => void,
@@ -780,7 +776,7 @@ class CellRenderer extends React.Component<CellProps> {
     let debug;
     if (DEBUG) {
       infoLog('render cell ' + this.props.rowIndex);
-      const Text = require('../Text/Text');
+      const Text = require('Text');
       debug = <Text style={styles.debug}>Row: {this.props.rowIndex}</Text>;
     }
     const style = this._includeInLayoutLatch ? styles.include : styles.remove;

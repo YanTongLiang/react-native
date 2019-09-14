@@ -10,9 +10,7 @@
 
 'use strict';
 
-const UIManager = require('../ReactNative/UIManager');
-
-import Platform from '../Utilities/Platform';
+const UIManager = require('UIManager');
 
 type Type =
   | 'spring'
@@ -44,13 +42,13 @@ function configureNext(
   config: LayoutAnimationConfig,
   onAnimationDidEnd?: Function,
 ) {
-  if (!Platform.isTesting) {
-    UIManager.configureNextLayoutAnimation(
-      config,
-      onAnimationDidEnd ?? function() {},
-      function() {} /* unused onError */,
-    );
-  }
+  UIManager.configureNextLayoutAnimation(
+    config,
+    onAnimationDidEnd ?? function() {},
+    function() {
+      /* unused */
+    },
+  );
 }
 
 function create(
@@ -67,12 +65,8 @@ function create(
 }
 
 const Presets = {
-  easeInEaseOut: (create(
-    300,
-    'easeInEaseOut',
-    'opacity',
-  ): LayoutAnimationConfig),
-  linear: (create(500, 'linear', 'opacity'): LayoutAnimationConfig),
+  easeInEaseOut: create(300, 'easeInEaseOut', 'opacity'),
+  linear: create(500, 'linear', 'opacity'),
   spring: {
     duration: 700,
     create: {
@@ -137,15 +131,9 @@ const LayoutAnimation = {
     console.error('LayoutAnimation.checkConfig(...) has been disabled.');
   },
   Presets,
-  easeInEaseOut: (configureNext.bind(null, Presets.easeInEaseOut): (
-    onAnimationDidEnd?: any,
-  ) => void),
-  linear: (configureNext.bind(null, Presets.linear): (
-    onAnimationDidEnd?: any,
-  ) => void),
-  spring: (configureNext.bind(null, Presets.spring): (
-    onAnimationDidEnd?: any,
-  ) => void),
+  easeInEaseOut: configureNext.bind(null, Presets.easeInEaseOut),
+  linear: configureNext.bind(null, Presets.linear),
+  spring: configureNext.bind(null, Presets.spring),
 };
 
 module.exports = LayoutAnimation;

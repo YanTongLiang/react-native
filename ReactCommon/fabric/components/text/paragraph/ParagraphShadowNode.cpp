@@ -6,13 +6,13 @@
  */
 
 #include "ParagraphShadowNode.h"
-#include "ParagraphMeasurementCache.h"
-#include "ParagraphState.h"
+
+#include "ParagraphLocalData.h"
 
 namespace facebook {
 namespace react {
 
-char const ParagraphComponentName[] = "Paragraph";
+const char ParagraphComponentName[] = "Paragraph";
 
 AttributedString ParagraphShadowNode::getAttributedString() const {
   if (!cachedAttributedString_.has_value()) {
@@ -32,52 +32,33 @@ void ParagraphShadowNode::setTextLayoutManager(
   textLayoutManager_ = textLayoutManager;
 }
 
-void ParagraphShadowNode::setMeasureCache(
-    ParagraphMeasurementCache const *cache) {
-  ensureUnsealed();
-  measureCache_ = cache;
-}
-
-void ParagraphShadowNode::updateStateIfNeeded() {
+void ParagraphShadowNode::updateLocalDataIfNeeded() {
   ensureUnsealed();
 
   auto attributedString = getAttributedString();
-  auto const &state = getStateData();
-  if (state.attributedString == attributedString) {
+  auto currentLocalData = std::static_pointer_cast<const ParagraphLocalData>(getLocalData());
+  if (currentLocalData && currentLocalData->getAttributedString() == attributedString) {
     return;
   }
 
-  setStateData(ParagraphState{attributedString, textLayoutManager_});
+  auto localData = std::make_shared<ParagraphLocalData>();
+  localData->setAttributedString(std::move(attributedString));
+  localData->setTextLayoutManager(textLayoutManager_);
+  setLocalData(localData);
 }
 
 #pragma mark - LayoutableShadowNode
 
 Size ParagraphShadowNode::measure(LayoutConstraints layoutConstraints) const {
-  AttributedString attributedString = getAttributedString();
-
-  if (attributedString.isEmpty()) {
-    return {0, 0};
-  }
-
-  ParagraphAttributes const paragraphAttributes =
-      getProps()->paragraphAttributes;
-
-  assert(measureCache_);
-
-  return measureCache_->get(
-      ParagraphMeasurementCacheKey{
-          attributedString, paragraphAttributes, layoutConstraints},
-      [&](ParagraphMeasurementCacheKey const &key) {
-        return textLayoutManager_->measure(
-            attributedString, paragraphAttributes, layoutConstraints);
-      });
-
   return textLayoutManager_->measure(
-      attributedString, paragraphAttributes, layoutConstraints);
+      getTag(),
+      getAttributedString(),
+      getProps()->paragraphAttributes,
+      layoutConstraints);
 }
 
 void ParagraphShadowNode::layout(LayoutContext layoutContext) {
-  updateStateIfNeeded();
+  updateLocalDataIfNeeded();
   ConcreteViewShadowNode::layout(layoutContext);
 }
 

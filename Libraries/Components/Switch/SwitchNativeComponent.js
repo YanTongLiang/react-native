@@ -10,36 +10,47 @@
 
 'use strict';
 
-import type {BubblingEventHandler, WithDefault} from '../../Types/CodegenTypes';
-import type {ColorValue} from '../../StyleSheet/StyleSheetTypes';
-import type {ViewProps} from '../View/ViewPropTypes';
+const Platform = require('Platform');
+const ReactNative = require('ReactNative');
 
-import codegenNativeComponent from '../../Utilities/codegenNativeComponent';
-import {type NativeComponentType} from '../../Utilities/codegenNativeComponent';
+const requireNativeComponent = require('requireNativeComponent');
 
-type SwitchChangeEvent = $ReadOnly<{|
-  value: boolean,
-|}>;
+import type {SwitchChangeEvent} from 'CoreEventTypes';
+import type {ViewProps} from 'ViewPropTypes';
 
-type NativeProps = $ReadOnly<{|
+// @see ReactSwitchManager.java
+export type NativeAndroidProps = $ReadOnly<{|
   ...ViewProps,
-
-  // Props
-  disabled?: WithDefault<boolean, false>,
-  value?: WithDefault<boolean, false>,
-  tintColor?: ?ColorValue,
-  onTintColor?: ?ColorValue,
-  thumbTintColor?: ?ColorValue,
-
-  // Deprecated props
-  thumbColor?: ?ColorValue,
-  trackColorForFalse?: ?ColorValue,
-  trackColorForTrue?: ?ColorValue,
-
-  // Events
-  onChange?: ?BubblingEventHandler<SwitchChangeEvent>,
+  enabled?: ?boolean,
+  on?: ?boolean,
+  onChange?: ?(event: SwitchChangeEvent) => mixed,
+  thumbTintColor?: ?string,
+  trackTintColor?: ?string,
 |}>;
 
-export default (codegenNativeComponent<NativeProps>('Switch', {
-  paperComponentName: 'RCTSwitch',
-}): NativeComponentType<NativeProps>);
+// @see RCTSwitchManager.m
+export type NativeIOSProps = $ReadOnly<{|
+  ...ViewProps,
+  disabled?: ?boolean,
+  onChange?: ?(event: SwitchChangeEvent) => mixed,
+  onTintColor?: ?string,
+  thumbTintColor?: ?string,
+  tintColor?: ?string,
+  value?: ?boolean,
+|}>;
+
+type SwitchNativeComponentType = Class<
+  ReactNative.NativeComponent<
+    $ReadOnly<{|
+      ...NativeAndroidProps,
+      ...NativeIOSProps,
+    |}>,
+  >,
+>;
+
+const SwitchNativeComponent: SwitchNativeComponentType =
+  Platform.OS === 'android'
+    ? (requireNativeComponent('AndroidSwitch'): any)
+    : (requireNativeComponent('RCTSwitch'): any);
+
+module.exports = SwitchNativeComponent;

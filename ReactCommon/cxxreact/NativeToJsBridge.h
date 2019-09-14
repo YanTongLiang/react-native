@@ -75,7 +75,6 @@ public:
   void setGlobalVariable(std::string propName, std::unique_ptr<const JSBigString> jsonValue);
   void* getJavaScriptContext();
   bool isInspectable();
-  bool isBatchActive();
 
   void handleMemoryPressure(int pressureLevel);
 
@@ -83,10 +82,9 @@ public:
    * Synchronously tears down the bridge and the main executor.
    */
   void destroy();
-
+private:
   void runOnExecutorQueue(std::function<void(JSExecutor*)> task);
 
-private:
   // This is used to avoid a race condition where a proxyCallback gets queued
   // after ~NativeToJsBridge(), on the same thread. In that case, the callback
   // will try to run the task on m_callback which will have been destroyed
@@ -96,18 +94,13 @@ private:
   std::unique_ptr<JSExecutor> m_executor;
   std::shared_ptr<MessageQueueThread> m_executorMessageQueueThread;
 
-  // Memoize this on the JS thread, so that it can be inspected from
-  // any thread later.  This assumes inspectability doesn't change for
-  // a JSExecutor instance, which is true for all existing implementations.
-  bool m_inspectable;
-
   // Keep track of whether the JS bundle containing the application logic causes
   // exception when evaluated initially. If so, more calls to JS will very
   // likely fail as well, so this flag can help prevent them.
   bool m_applicationScriptHasFailure = false;
 
   #ifdef WITH_FBSYSTRACE
-  std::atomic_uint_least32_t m_systraceCookie = ATOMIC_VAR_INIT(0);
+  std::atomic_uint_least32_t m_systraceCookie = ATOMIC_VAR_INIT();
   #endif
 };
 

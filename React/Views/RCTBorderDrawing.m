@@ -224,15 +224,13 @@ static UIImage *RCTGetSolidBorderImage(RCTCornerRadii cornerRadii,
     borderInsets.right + MAX(cornerInsets.bottomRight.width, cornerInsets.topRight.width)
   };
 
-  if (hasCornerRadii) {
-    // Asymmetrical edgeInsets cause strange artifacting on iOS 10 and earlier.
-    edgeInsets = (UIEdgeInsets){
-      MAX(edgeInsets.top, edgeInsets.bottom),
-      MAX(edgeInsets.left, edgeInsets.right),
-      MAX(edgeInsets.top, edgeInsets.bottom),
-      MAX(edgeInsets.left, edgeInsets.right),
-    };
-  }
+  // Asymmetrical edgeInsets cause strange artifacting on iOS 10 and earlier.
+  edgeInsets = (UIEdgeInsets){
+    MAX(edgeInsets.top, edgeInsets.bottom),
+    MAX(edgeInsets.left, edgeInsets.right),
+    MAX(edgeInsets.top, edgeInsets.bottom),
+    MAX(edgeInsets.left, edgeInsets.right),
+  };
 
   const CGSize size = makeStretchable ? (CGSize){
     // 1pt for the middle stretchable area along each axis
@@ -456,7 +454,7 @@ static UIImage *RCTGetSolidBorderImage(RCTCornerRadii cornerRadii,
 //         +------------------+
 //
 //
-// Note that this approach will produce discontinuous colour changes at the edge
+// Note that this approach will produce discontinous colour changes at the edge
 // (which is okay). The reason is that Quartz does not currently support drawing
 // of gradients _along_ a path (NB: clipping a path and drawing a linear gradient
 // is _not_ equivalent).

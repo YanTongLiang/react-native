@@ -10,7 +10,7 @@
 
 'use strict';
 
-const invariant = require('invariant');
+const invariant = require('fbjs/lib/invariant');
 
 class EventHolder {
   _heldEvents: Object;
@@ -42,10 +42,7 @@ class EventHolder {
    *   }); //logs 'abc'
    *
    */
-  holdEvent(
-    eventType: string,
-    ...args: any
-  ): {|eventType: string, index: $FlowFixMeEmpty|} {
+  holdEvent(eventType: string, ...args: any) {
     this._heldEvents[eventType] = this._heldEvents[eventType] || [];
     const eventsOfType = this._heldEvents[eventType];
     const key = {

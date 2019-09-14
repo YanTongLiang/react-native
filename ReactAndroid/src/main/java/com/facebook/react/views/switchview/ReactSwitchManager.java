@@ -1,34 +1,40 @@
 /**
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * <p>This source code is licensed under the MIT license found in the LICENSE file in the root
- * directory of this source tree.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 // switchview because switch is a keyword
 package com.facebook.react.views.switchview;
 
+import android.graphics.PorterDuff;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.CompoundButton;
-import androidx.annotation.Nullable;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.uimanager.LayoutShadowNode;
+import com.facebook.react.uimanager.ReactShadowNodeImpl;
 import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.UIManagerModule;
 import com.facebook.react.uimanager.ViewProps;
 import com.facebook.react.uimanager.annotations.ReactProp;
+import com.facebook.react.uimanager.events.EventDispatcher;
 import com.facebook.yoga.YogaMeasureFunction;
 import com.facebook.yoga.YogaMeasureMode;
 import com.facebook.yoga.YogaMeasureOutput;
 import com.facebook.yoga.YogaNode;
 
-/** View manager for {@link ReactSwitch} components. */
+/**
+ * View manager for {@link ReactSwitch} components.
+ */
 public class ReactSwitchManager extends SimpleViewManager<ReactSwitch> {
 
-  public static final String REACT_CLASS = "AndroidSwitch";
+  private static final String REACT_CLASS = "AndroidSwitch";
 
-  static class ReactSwitchShadowNode extends LayoutShadowNode implements YogaMeasureFunction {
+  static class ReactSwitchShadowNode extends LayoutShadowNode implements
+      YogaMeasureFunction {
 
     private int mWidth;
     private int mHeight;
@@ -55,7 +61,9 @@ public class ReactSwitchManager extends SimpleViewManager<ReactSwitch> {
         // on a specific device/theme/locale combination.
         ReactSwitch reactSwitch = new ReactSwitch(getThemedContext());
         reactSwitch.setShowText(false);
-        final int spec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+        final int spec = View.MeasureSpec.makeMeasureSpec(
+            0,
+            View.MeasureSpec.UNSPECIFIED);
         reactSwitch.measure(spec, spec);
         mWidth = reactSwitch.getMeasuredWidth();
         mHeight = reactSwitch.getMeasuredHeight();
@@ -71,10 +79,10 @@ public class ReactSwitchManager extends SimpleViewManager<ReactSwitch> {
         @Override
         public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
           ReactContext reactContext = (ReactContext) buttonView.getContext();
-          reactContext
-              .getNativeModule(UIManagerModule.class)
-              .getEventDispatcher()
-              .dispatchEvent(new ReactSwitchEvent(buttonView.getId(), isChecked));
+          reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher().dispatchEvent(
+              new ReactSwitchEvent(
+                  buttonView.getId(),
+                  isChecked));
         }
       };
 
@@ -100,11 +108,6 @@ public class ReactSwitchManager extends SimpleViewManager<ReactSwitch> {
     return view;
   }
 
-  @ReactProp(name = "disabled", defaultBoolean = false)
-  public void setDisabled(ReactSwitch view, boolean disabled) {
-    view.setEnabled(!disabled);
-  }
-
   @ReactProp(name = ViewProps.ENABLED, defaultBoolean = true)
   public void setEnabled(ReactSwitch view, boolean enabled) {
     view.setEnabled(enabled);
@@ -112,41 +115,29 @@ public class ReactSwitchManager extends SimpleViewManager<ReactSwitch> {
 
   @ReactProp(name = ViewProps.ON)
   public void setOn(ReactSwitch view, boolean on) {
-    this.setValue(view, on);
-  }
-
-  @ReactProp(name = "value")
-  public void setValue(ReactSwitch view, boolean value) {
     // we set the checked change listener to null and then restore it so that we don't fire an
     // onChange event to JS when JS itself is updating the value of the switch
     view.setOnCheckedChangeListener(null);
-    view.setOn(value);
+    view.setOn(on);
     view.setOnCheckedChangeListener(ON_CHECKED_CHANGE_LISTENER);
   }
 
   @ReactProp(name = "thumbTintColor", customType = "Color")
-  public void setThumbTintColor(ReactSwitch view, @Nullable Integer color) {
-    this.setThumbColor(view, color);
-  }
-
-  @ReactProp(name = "thumbColor", customType = "Color")
-  public void setThumbColor(ReactSwitch view, @Nullable Integer color) {
-    view.setThumbColor(color);
-  }
-
-  @ReactProp(name = "trackColorForFalse", customType = "Color")
-  public void setTrackColorForFalse(ReactSwitch view, @Nullable Integer color) {
-    view.setTrackColorForFalse(color);
-  }
-
-  @ReactProp(name = "trackColorForTrue", customType = "Color")
-  public void setTrackColorForTrue(ReactSwitch view, @Nullable Integer color) {
-    view.setTrackColorForTrue(color);
+  public void setThumbTintColor(ReactSwitch view, Integer color) {
+    if (color == null) {
+      view.getThumbDrawable().clearColorFilter();
+    } else {
+      view.getThumbDrawable().setColorFilter(color, PorterDuff.Mode.MULTIPLY);
+    }
   }
 
   @ReactProp(name = "trackTintColor", customType = "Color")
-  public void setTrackTintColor(ReactSwitch view, @Nullable Integer color) {
-    view.setTrackColor(color);
+  public void setTrackTintColor(ReactSwitch view, Integer color) {
+    if (color == null) {
+      view.getTrackDrawable().clearColorFilter();
+    } else {
+      view.getTrackDrawable().setColorFilter(color, PorterDuff.Mode.MULTIPLY);
+    }
   }
 
   @Override

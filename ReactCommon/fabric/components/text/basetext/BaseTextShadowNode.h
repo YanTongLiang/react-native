@@ -21,14 +21,10 @@ class BaseTextShadowNode {
  public:
   /*
    * Returns a `AttributedString` which represents text content of the node.
-   * This is static so that both Paragraph (which subclasses BaseText) and
-   * TextInput (which does not) can use this.
-   * TODO T53299884: decide if this should be moved out and made a static
-   * function, or if TextInput should inherit from BaseTextShadowNode.
    */
-  static AttributedString getAttributedString(
+  AttributedString getAttributedString(
       const TextAttributes &baseTextAttributes,
-      const SharedShadowNode &parentNode);
+      const SharedShadowNode &parentNode) const;
 };
 
 } // namespace react

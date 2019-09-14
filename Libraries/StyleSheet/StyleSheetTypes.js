@@ -10,14 +10,9 @@
 
 'use strict';
 
-const AnimatedNode = require('../Animated/src/nodes/AnimatedNode');
+const AnimatedNode = require('AnimatedNode');
 
 export type ColorValue = null | string;
-export type ColorArrayValue = null | $ReadOnlyArray<ColorValue>;
-export type PointValue = {|
-  x: number,
-  y: number,
-|};
 export type DimensionValue = null | number | string | AnimatedNode;
 
 /**
@@ -33,7 +28,7 @@ export type DimensionValue = null | number | string | AnimatedNode;
  * These properties are a subset of our styles that are consumed by the layout
  * algorithm and affect the positioning and sizing of views.
  */
-type ____LayoutStyle_Internal = $ReadOnly<{|
+export type ____LayoutStyle_Internal = $ReadOnly<{|
   /** `display` sets the display type of this component.
    *
    *  It works similarly to `display` in CSS, but only support 'flex' and 'none'.
@@ -465,7 +460,7 @@ type ____LayoutStyle_Internal = $ReadOnly<{|
   direction?: 'inherit' | 'ltr' | 'rtl',
 |}>;
 
-type ____TransformStyle_Internal = $ReadOnly<{|
+export type ____TransformStyle_Internal = $ReadOnly<{|
   /**
    * `transform` accepts an array of transformation objects. Each object specifies
    * the property that will be transformed as the key, and the value to use in the
@@ -576,26 +571,24 @@ export type ____ViewStyle_Internal = $ReadOnly<{|
   elevation?: number,
 |}>;
 
-export type ____FontWeight_Internal =
-  | 'normal'
-  | 'bold'
-  | '100'
-  | '200'
-  | '300'
-  | '400'
-  | '500'
-  | '600'
-  | '700'
-  | '800'
-  | '900';
-
 export type ____TextStyle_Internal = $ReadOnly<{|
   ...$Exact<____ViewStyle_Internal>,
   color?: ColorValue,
   fontFamily?: string,
   fontSize?: number,
   fontStyle?: 'normal' | 'italic',
-  fontWeight?: ____FontWeight_Internal,
+  fontWeight?:
+    | 'normal'
+    | 'bold'
+    | '100'
+    | '200'
+    | '300'
+    | '400'
+    | '500'
+    | '600'
+    | '700'
+    | '800'
+    | '900',
   fontVariant?: $ReadOnlyArray<
     | 'small-caps'
     | 'oldstyle-nums'

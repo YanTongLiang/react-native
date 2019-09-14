@@ -50,7 +50,7 @@ using namespace facebook::react;
   return nullptr;
 }
 
-- (NSArray<id<RCTBridgeMethod>> *)methodsToExport
+- (NSArray<id<RCTBridgeMethod>> *)methodsToExport;
 {
   [self lazyInit];
   if (!_module) {
@@ -64,12 +64,7 @@ using namespace facebook::react;
   return moduleMethods;
 }
 
-- (NSDictionary<NSString *, id> *)constantsToExport
-{
-  return [self getConstants];
-}
-
-- (NSDictionary<NSString *, id> *)getConstants
+- (NSDictionary<NSString *, id> *)constantsToExport;
 {
   [self lazyInit];
   if (!_module) {
